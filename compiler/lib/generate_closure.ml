@@ -195,24 +195,30 @@ module Trampoline = struct
                             (bounce_call_block block ~x ~f:new_f ~args)
                             blocks
                         in
-                        let direct = Code.Var.fresh () in
-                        let branch =
-                          Cond
-                            (IsTrue, direct, (direct_call_pc, []), (bounce_call_pc, []))
-                        in
-                        let last =
-                          Let
-                            ( direct
-                            , Prim
-                                ( Lt
-                                , [ Pv counter
-                                  ; Pc
-                                      (Int
-                                         (Int32.of_int
-                                            (Config.Param.tailcall_max_depth ()))) ] ) )
-                        in
-                        let block =
-                          {block with body = List.rev (last :: rem_rev); branch}
+                        let tailcall_max_depth =
+                          Config.Param.tailcall_max_depth () in
+                        let blocks, block =
+                          if tailcall_max_depth = 0 then
+                            let branch = Branch (bounce_call_pc, []) in
+                            blocks, {block with body = List.rev rem_rev; branch}
+                          else
+                            let direct = Code.Var.fresh () in
+                            let branch =
+                              Cond
+                                (IsTrue, direct, (direct_call_pc, []), (bounce_call_pc, []))
+                            in
+                            let last =
+                              Let
+                                ( direct
+                                , Prim
+                                    ( Lt
+                                    , [ Pv counter
+                                      ; Pc
+                                          (Int
+                                             (Int32.of_int
+                                                tailcall_max_depth)) ] ) )
+                            in
+                            blocks, {block with body = List.rev (last :: rem_rev); branch}
                         in
                         let blocks = Addr.Map.remove pc blocks in
                         Addr.Map.add pc block blocks, free_pc

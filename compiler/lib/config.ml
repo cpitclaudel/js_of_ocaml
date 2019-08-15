@@ -121,7 +121,7 @@ module Param = struct
     p
       ~name:"tc_depth"
       ~desc:"set the maximum number of recursive tailcalls defore returning a trampoline"
-      (int 50)
+      (int 0)
 
   let constant_max_depth =
     p
